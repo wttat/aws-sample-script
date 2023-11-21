@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>图像和 OCR 结果</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex; /* 使用 Flexbox 布局 */
+            flex-direction: row; /* 子元素水平排列 */
+            height: 100vh; /* 设置 body 高度为视口高度 */
+            overflow: hidden; /* 隐藏超出部分 */
+        }
+        .image-container {
+            flex: 1; /* 图片容器和文本容器将平分空间 */
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .text-container {
+            flex: 1; /* 图片容器和文本容器将平分空间 */
+            padding: 10px;
+            display: flex;
+            flex-direction: column; /* 子元素垂直排列 */
+            overflow-y: auto; /* 如果文本内容超出，则可滚动 */
+        }
+        .file-name {
+            margin-bottom: 10px; /* 文件名和识别结果之间的间隔 */
+            font-weight: bold;
+        }
+        img {
+            max-width: 100%;
+            max-height: 100vh; /* 限制图片最大高度为视口高度 */
+            object-fit: contain; /* 保持图片原始宽高比 */
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        td {
+            padding: 5px;
+            border: 1px solid #ddd;
+        }
+        tr:nth-child(odd) {
+            background-color: #f9f9f9;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            var imageFile = "{{ image_file }}";
+            $.ajax({
+                url: '/get_ocr_results',
+                data: { 'file_name': imageFile },
+                type: 'GET',
+                success: function(response) {
+                    // 假定 response 是一个已经格式化好的键值对字符串
+                    var resultsStr = response.captions; // 这里需要确保服务器返回的是一个字符串
+                    // 使用正则表达式将字符串转换为键值对
+                    var regex = /'([^']+)':\s*'([^']*)'/g;
+                    var match;
+                    var resultsObj = {};
+                    while ((match = regex.exec(resultsStr)) !== null) {
+                        resultsObj[match[1]] = match[2];
+                    }
+                    // 构建表格 HTML
+                    var tableHtml = '<table>';
+                    for (var key in resultsObj) {
+                        tableHtml += '<tr><td>' + key + '</td><td>' + resultsObj[key] + '</td></tr>';
+                    }
+                    tableHtml += '</table>';
+                    $('.ocr-result').html(tableHtml);
+                },
+                error: function(error) {
+                    $('.ocr-result').html('<p>识别结果: 出现错误，请稍后再试。</p>');
+                }
+            });
+        });
+        </script>
+        
+        
+    
+</head>
+<body>
+    <div class="image-container">
+        <img src="{{ url_for('dataset', filename=image_file) }}" alt="随机图片">
+    </div>
+    <div class="text-container">
+        <div class="file-name">文件名: {{ image_file }}</div>
+        <div class="ocr-result">
+            <p>识别结果: 正在处理中...</p>
+        </div>
+    </div>
+</body>
+</html>
